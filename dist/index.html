@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liga de Fútbol Vinto - Panel Histórico</title>
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="/assets/index-BZ1xXlKD.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BQOxJ8ZX.css">
+</head>
+<body>
+  <!-- Background Elements -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="badge-icon">⚽</div>
+        <div>
+          <h1>Liga de Fútbol Vinto</h1>
+          <p class="subtitle">Panel de Habilitación Histórica y Traspasos</p>
+        </div>
+      </div>
+      
+      <!-- Sync Status & Stats -->
+      <div class="sync-panel glass-card">
+        <div class="sync-stats">
+          <div class="stat-item">
+            <span class="stat-label">Jugadores</span>
+            <span id="stat-players" class="stat-value">Cargando...</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Equipos</span>
+            <span id="stat-teams" class="stat-value">Cargando...</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Historial</span>
+            <span id="stat-history" class="stat-value">Cargando...</span>
+          </div>
+        </div>
+        <button id="btn-sync" class="btn btn-secondary btn-icon" title="Sincronizar base de datos local">
+          <svg class="icon-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Sincronizar
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Search & Selected Player details -->
+      <section class="grid-col main-panel">
+        <!-- Search Card -->
+        <div class="glass-card card-search">
+          <h2 class="section-title">🔍 Buscador de Jugadores</h2>
+          <p class="section-desc">Busca al jugador en la base de datos local cargada en caché.</p>
+          
+          <div class="search-input-wrapper">
+            <div class="search-input-inner">
+              <input type="text" id="search-player" placeholder="Escribe el nombre o apellido del jugador..." autocomplete="off">
+              <span class="search-icon">🔍</span>
+              <button id="btn-clear-search" class="clear-input-btn hidden" type="button" title="Limpiar búsqueda">×</button>
+            </div>
+            <button id="btn-search-trigger" class="btn btn-primary btn-search-go" type="button">Buscar</button>
+          </div>
+          
+          <!-- Suggestion Box -->
+          <div id="search-suggestions" class="suggestions-container hidden"></div>
+        </div>
+
+        <!-- Selected Player Card -->
+        <div id="player-profile" class="glass-card player-profile-card hidden">
+          <div class="player-header">
+            <div class="player-photo-wrapper">
+              <img id="player-img" src="" alt="Foto Jugador" class="player-photo">
+            </div>
+            <div class="player-identity">
+              <span id="player-ci-badge" class="badge">C.I. -</span>
+              <h3 id="player-fullname">Nombre del Jugador</h3>
+              <p id="player-birthdate" class="player-meta-info">Fecha de Nacimiento: -</p>
+            </div>
+          </div>
+
+          <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="tab-history">Historial de Participación</button>
+            <button class="tab-btn" data-tab="tab-transfer">Registrar Nuevo Pase</button>
+          </div>
+
+          <!-- Tab Content: History -->
+          <div id="tab-history" class="tab-content active">
+            <h4 class="tab-title">Historial Deportivo</h4>
+            <div class="timeline-wrapper">
+              <div id="player-timeline" class="timeline">
+                <!-- Timeline items go here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content: Transfer Form -->
+          <div id="tab-transfer" class="tab-content">
+            <h4 class="tab-title">Registrar Traspaso / Participación</h4>
+            <form id="form-transfer" class="sport-form">
+              <div class="form-group">
+                <label for="transfer-team-input">Club de Destino</label>
+                <input type="text" id="transfer-team-input" list="teams-list" placeholder="Escribe para buscar club (Ej: Real Vinto)..." required autocomplete="off">
+              </div>
+
+              <div class="form-group">
+                <label>Gestión / Año Deportivo</label>
+                <div class="year-selector">
+                  <input type="radio" name="transfer-year" id="trans-2024" value="2024" checked>
+                  <label for="trans-2024" class="year-btn">2024</label>
+
+                  <input type="radio" name="transfer-year" id="trans-2025" value="2025">
+                  <label for="trans-2025" class="year-btn">2025</label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="transfer-category">Categoría del Jugador</label>
+                <select id="transfer-category" required>
+                  <option value="natural" selected>Natural</option>
+                  <option value="refuerzo">Refuerzo</option>
+                  <option value="juvenil">Juvenil</option>
+                </select>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full">
+                <span>⚡ Guardar Registro</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- No Player Selected State -->
+        <div id="player-placeholder" class="glass-card placeholder-card">
+          <div class="placeholder-icon">⚽</div>
+          <h3>Ningún jugador seleccionado</h3>
+          <p>Busca un jugador en el cuadro de búsqueda para ver sus datos biográficos, historial y registrar su pase deportivo.</p>
+        </div>
+      </section>
+
+      <!-- Right Column: Register New Player -->
+      <section class="grid-col sidebar-panel">
+        <div class="glass-card card-register">
+          <h2 class="section-title">👤 Habilitar Jugador Nuevo</h2>
+          <p class="section-desc">Registra a un jugador que se incorpora a la liga con su primer pase.</p>
+
+          <form id="form-new-player" class="sport-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="new-nombres">Nombres <span class="required">*</span></label>
+                <input type="text" id="new-nombres" placeholder="Ej: Juan Antonio" required>
+              </div>
+              <div class="form-group">
+                <label for="new-apellidos">Apellidos <span class="required">*</span></label>
+                <input type="text" id="new-apellidos" placeholder="Ej: Mamani Perez" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="new-ci">C.I. (Carnet de Identidad)</label>
+                <input type="text" id="new-ci" placeholder="Omitir para generar TEMP-">
+                <small class="helper-text">Si se deja vacío, se creará un C.I. temporal.</small>
+              </div>
+              <div class="form-group">
+                <label for="new-birthdate">Fecha de Nacimiento</label>
+                <input type="date" id="new-birthdate">
+              </div>
+            </div>
+
+            <div class="section-divider"></div>
+            <h3 class="subsection-title">Asignación de Club Inicial</h3>
+
+            <div class="form-group">
+              <label for="new-team-input">Club de Destino <span class="required">*</span></label>
+              <input type="text" id="new-team-input" list="teams-list" placeholder="Escribe para buscar club (Ej: Bush Vinto)..." required autocomplete="off">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Gestión</label>
+                <div class="year-selector">
+                  <input type="radio" name="new-year" id="new-y-2024" value="2024" checked>
+                  <label for="new-y-2024" class="year-btn">2024</label>
+
+                  <input type="radio" name="new-year" id="new-y-2025" value="2025">
+                  <label for="new-y-2025" class="year-btn">2025</label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="new-category">Categoría <span class="required">*</span></label>
+                <select id="new-category" required>
+                  <option value="natural" selected>Natural</option>
+                  <option value="refuerzo">Refuerzo</option>
+                  <option value="juvenil">Juvenil</option>
+                </select>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-accent btn-full">
+              <span>🚀 Registrar y Habilitar</span>
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="modal-overlay hidden">
+    <div class="modal-card glass-card">
+      <div class="modal-header">
+        <div class="modal-icon">⚠️</div>
+        <h3>Confirmar Inyección en Base de Datos</h3>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de registrar este pase histórico? Se inyectará el siguiente registro en Supabase:</p>
+        <div class="confirm-summary-box">
+          <p id="confirm-summary-text">El jugador <strong>LUIS ALBERTO SILES RUIZ</strong> perteneció al equipo <strong>1 de Mayo</strong> en el año <strong>2024</strong> bajo la categoría <strong>natural</strong>.</p>
+        </div>
+        <p class="confirm-warning-note">Nota: Si ya existía un registro de este jugador para esta gestión, será actualizado (Upsert).</p>
+      </div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-secondary">Cancelar</button>
+        <button id="modal-confirm" class="btn btn-primary">
+          <svg class="btn-spinner hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          <span class="btn-text">Confirmar e Inyectar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Datalist for autocomplete team search -->
+  <datalist id="teams-list"></datalist>
+
+  <!-- Toast Notification System -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Core JavaScript -->
+</body>
+</html>
