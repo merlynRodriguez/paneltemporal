@@ -952,3 +952,196 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* Main Navigation Tabs */
+.main-nav {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 0.5rem;
+}
+
+.nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.8rem 1.5rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-btn:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.nav-btn.active {
+  color: var(--color-primary);
+  background-color: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.nav-section {
+  transition: opacity var(--transition-normal);
+}
+
+/* Roster Renewal Styles */
+.card-roster {
+  padding: 2rem;
+}
+
+.roster-search-wrapper {
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+.roster-results-wrapper {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.roster-table-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background-color: var(--bg-secondary);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+}
+
+.roster-info-badge {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.roster-info-badge strong {
+  color: var(--color-primary);
+}
+
+.select-all-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  user-select: none;
+}
+
+.select-all-wrapper input {
+  cursor: pointer;
+}
+
+.table-scroll-container {
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+}
+
+.roster-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.roster-table th, .roster-table td {
+  padding: 0.8rem 1.25rem;
+  border-bottom: 1px solid var(--card-border);
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+.roster-table th {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.roster-table tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.roster-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.roster-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.roster-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.roster-table select {
+  padding: 0.4rem 0.6rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.roster-table select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.roster-player-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.roster-player-photo {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-round);
+  object-fit: cover;
+  background-color: var(--bg-primary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.roster-actions-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.borderless {
+  border: none;
+  background: none;
+  box-shadow: none;
+  min-height: auto;
+}

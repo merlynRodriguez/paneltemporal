@@ -49,8 +49,16 @@
       </div>
     </header>
 
-    <!-- Main Grid -->
-    <main class="dashboard-grid">
+    <!-- Main Tab Navigation -->
+    <nav class="main-nav glass-card">
+      <button class="nav-btn active" data-nav="section-players">👤 Gestión de Jugadores</button>
+      <button class="nav-btn" data-nav="section-rosters">📋 Renovación de Nóminas</button>
+    </nav>
+
+    <!-- Players Management Section -->
+    <div id="section-players" class="nav-section active">
+      <!-- Main Grid -->
+      <main class="dashboard-grid">
       <!-- Left Column: Search & Selected Player details -->
       <section class="grid-col main-panel">
         <!-- Search Card -->
@@ -210,7 +218,74 @@
         </div>
       </section>
     </main>
-  </div>
+  </div> <!-- End of #section-players -->
+
+  <!-- Roster Section -->
+  <div id="section-rosters" class="nav-section hidden">
+    <div class="glass-card card-roster">
+      <h2 class="section-title">📋 Renovación de Nóminas por Club</h2>
+      <p class="section-desc">Selecciona un club para ver sus jugadores históricos y habilitarlos masivamente para las gestiones 2024 o 2025.</p>
+      
+      <div class="roster-search-wrapper">
+        <div class="search-input-wrapper">
+          <div class="search-input-inner">
+            <input type="text" id="roster-team-input" list="teams-list" placeholder="Escribe para buscar un club (Ej: C. D. Amanecer)..." autocomplete="off">
+            <span class="search-icon">🛡️</span>
+          </div>
+          <button id="btn-roster-search" class="btn btn-primary btn-search-go" type="button">Cargar Nómina</button>
+        </div>
+      </div>
+
+      <!-- Roster Table Container -->
+      <div id="roster-results-container" class="roster-results-wrapper hidden">
+        <div class="roster-table-actions">
+          <div class="roster-info-badge">
+            Club seleccionado: <strong id="roster-selected-team-name">-</strong>
+          </div>
+          <div class="select-all-wrapper">
+            <input type="checkbox" id="roster-select-all">
+            <label for="roster-select-all">Marcar todos</label>
+          </div>
+        </div>
+
+        <div class="table-scroll-container">
+          <table class="roster-table">
+            <thead>
+              <tr>
+                <th width="80px">Habilitar</th>
+                <th width="60px">Foto</th>
+                <th>Jugador</th>
+                <th>C.I.</th>
+                <th>Último Año en Club</th>
+                <th width="150px">Categoría</th>
+              </tr>
+            </thead>
+            <tbody id="roster-table-body">
+              <!-- Roster player rows will go here -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Roster Actions Footer -->
+        <div class="roster-actions-footer">
+          <button id="btn-roster-2024" class="btn btn-primary" type="button">
+            <span>Habilitar Nómina 2024</span>
+          </button>
+          <button id="btn-roster-2025" class="btn btn-accent" type="button">
+            <span>Habilitar Nómina 2025</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Empty State for Roster selection -->
+      <div id="roster-placeholder" class="placeholder-card borderless">
+        <div class="placeholder-icon">🛡️</div>
+        <h3>Ningún club seleccionado</h3>
+        <p>Busca e ingresa el nombre de un club en la caja superior para ver sus planillas históricas y renovarlas.</p>
+      </div>
+    </div>
+  </div> <!-- End of #section-rosters -->
+</div> <!-- End of .app-container -->
 
   <!-- Confirmation Modal -->
   <div id="confirm-modal" class="modal-overlay hidden">

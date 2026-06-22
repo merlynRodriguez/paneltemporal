@@ -6,8 +6,8 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Fallback Silhouette Image (Premium dark SVG vector)
-const DEFAULT_PHOTO = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect width="100%" height="100%" fill="%231b253b"/><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="%23475569"/></svg>`;
+// Fallback Silhouette Image (Premium dark SVG vector base64 encoded)
+const DEFAULT_PHOTO = `data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iIzFiMjUzYiIvPjxwYXRoIGQ9Ik0xMiAxMmMyLjIxIDAgNC0xLjc5IDQtNHMtMS43OS00LTQtNC00IDEuNzktNCA0IDEuNzkgNCA0IDR6bTAgMmMtMi42NyAwLTggMS4zNC04IDR2MmgxNnYtMmMwLTIuNjYtNS4zMy00LTgtNHoiIGZpbGw9IiM0NzU1NjkiLz48L3N2Zz4=`;
 
 // Application State
 let state = {
@@ -44,7 +44,20 @@ const elements = {
   confirmSummaryText: document.getElementById('confirm-summary-text'),
   modalCancel: document.getElementById('modal-cancel'),
   modalConfirm: document.getElementById('modal-confirm'),
-  toastContainer: document.getElementById('toast-container')
+  toastContainer: document.getElementById('toast-container'),
+  
+  // Navigation & Roster Elements
+  sectionPlayers: document.getElementById('section-players'),
+  sectionRosters: document.getElementById('section-rosters'),
+  rosterTeamInput: document.getElementById('roster-team-input'),
+  btnRosterSearch: document.getElementById('btn-roster-search'),
+  rosterResultsContainer: document.getElementById('roster-results-container'),
+  rosterSelectedTeamName: document.getElementById('roster-selected-team-name'),
+  rosterSelectAll: document.getElementById('roster-select-all'),
+  rosterTableBody: document.getElementById('roster-table-body'),
+  btnRoster2024: document.getElementById('btn-roster-2024'),
+  btnRoster2025: document.getElementById('btn-roster-2025'),
+  rosterPlaceholder: document.getElementById('roster-placeholder')
 };
 
 // Helper: Normalize strings (removes accents, lowercase)
@@ -325,7 +338,19 @@ function setupEventListeners() {
     }
   });
 
-  // Tabs navigation
+  // Main Navigation Tabs
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.nav-section').forEach(s => s.classList.add('hidden'));
+      
+      btn.classList.add('active');
+      const targetSectionId = btn.getAttribute('data-nav');
+      document.getElementById(targetSectionId).classList.remove('hidden');
+    });
+  });
+
+  // Tabs navigation (profile internal tabs)
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -336,6 +361,26 @@ function setupEventListeners() {
       document.getElementById(tabId).classList.add('active');
     });
   });
+
+  // Roster Search and Autocomplete Actions
+  elements.btnRosterSearch.addEventListener('click', handleRosterSearch);
+  elements.rosterTeamInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      handleRosterSearch();
+    }
+  });
+
+  // Roster Select All Checkbox
+  elements.rosterSelectAll.addEventListener('change', (e) => {
+    const checkboxes = elements.rosterTableBody.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+      cb.checked = e.target.checked;
+    });
+  });
+
+  // Roster Save Habilitaciones
+  elements.btnRoster2024.addEventListener('click', () => handleRosterSave(2024));
+  elements.btnRoster2025.addEventListener('click', () => handleRosterSave(2025));
 
   // Transfer form submit (Save)
   elements.formTransfer.addEventListener('submit', handleTransferSubmit);
@@ -409,7 +454,7 @@ function handleSearchInput() {
     const highlightedName = highlightText(rawFullName, rawQuery);
     
     item.innerHTML = `
-      <img src="${photoUrl}" class="suggestion-photo" onerror="this.src='${DEFAULT_PHOTO}'">
+      <img src="${photoUrl}" class="suggestion-photo" width="28" height="28" onerror="this.onerror=null; this.src='${DEFAULT_PHOTO}'">
       <div class="suggestion-info">
         <span class="suggestion-name">${highlightedName}</span>
         <span>${badgeHtml}</span>
@@ -480,7 +525,7 @@ function performFullSearch() {
     const highlightedName = highlightText(rawFullName, rawQuery);
     
     item.innerHTML = `
-      <img src="${photoUrl}" class="suggestion-photo" onerror="this.src='${DEFAULT_PHOTO}'">
+      <img src="${photoUrl}" class="suggestion-photo" width="28" height="28" onerror="this.onerror=null; this.src='${DEFAULT_PHOTO}'">
       <div class="suggestion-info">
         <span class="suggestion-name">${highlightedName}</span>
         <span>${badgeHtml}</span>
@@ -793,12 +838,194 @@ async function executePendingAction() {
       
       // Auto-select the newly created player in search profile
       selectPlayer(newPlayer);
+    } else if (action.type === 'roster_renewal') {
+      // Bulk Upsert in historial_participacion
+      const upsertRows = action.players.map(p => ({
+        jugador_ci: p.ci,
+        equipo_id: action.teamId,
+        "año": action.year,
+        categoria_jugador: p.category
+      }));
+      
+      const { data, error } = await supabase
+        .from('historial_participacion')
+        .upsert(upsertRows, { onConflict: 'jugador_ci,año' })
+        .select();
+        
+      if (error) throw error;
+      
+      // Update local history cache
+      data.forEach(insertedRow => {
+        const idx = state.history.findIndex(h => h.jugador_ci === insertedRow.jugador_ci && h['año'] === insertedRow['año']);
+        if (idx > -1) {
+          state.history[idx] = insertedRow;
+        } else {
+          state.history.push(insertedRow);
+        }
+      });
+      
+      localStorage.setItem('vinto_history', JSON.stringify(state.history));
+      updateStatsUI();
+      
+      showToast(`Se habilitaron ${action.players.length} jugadores con éxito para la gestión ${action.year}.`, 'success');
+      hideConfirmModal();
+      
+      // Refresh the roster grid to show updated years/categories
+      handleRosterSearch();
     }
   } catch (err) {
     console.error("Database writing error:", err);
     showToast(`Error al guardar en Supabase: ${err.message || JSON.stringify(err)}`, 'error');
     resetButtonSpinner();
   }
+}
+
+// Handle Roster Search
+function handleRosterSearch() {
+  const selectedTeamName = elements.rosterTeamInput.value.trim();
+  const team = state.teams.find(t => t.nombre.toLowerCase() === selectedTeamName.toLowerCase());
+  
+  if (!team) {
+    showToast(`El club "${selectedTeamName}" no es válido o no está registrado. Elige uno de la lista.`, 'error');
+    return;
+  }
+  
+  // Save selected team properties on the element
+  elements.rosterSelectedTeamName.textContent = team.nombre;
+  elements.rosterSelectedTeamName.dataset.teamId = team.id;
+  
+  // Filter all participation history for this team
+  const rosterRecords = state.history.filter(h => h.equipo_id === team.id);
+  
+  // Group by player CI to find their latest participation record in this team
+  const playerLatestRecords = {};
+  rosterRecords.forEach(rec => {
+    const existing = playerLatestRecords[rec.jugador_ci];
+    if (!existing || rec['año'] > existing['año']) {
+      playerLatestRecords[rec.jugador_ci] = rec;
+    }
+  });
+  
+  // Construct list of players
+  const rosterPlayersList = [];
+  for (const ci in playerLatestRecords) {
+    const player = state.players.find(p => p.ci === ci);
+    if (player) {
+      rosterPlayersList.push({
+        player: player,
+        latestRecord: playerLatestRecords[ci]
+      });
+    }
+  }
+  
+  // Sort alphabetically by full name (nombres, apellidos) to match paper list format
+  rosterPlayersList.sort((a, b) => {
+    const nameA = `${a.player.nombres || ''} ${a.player.apellidos || ''}`.trim().toLowerCase();
+    const nameB = `${b.player.nombres || ''} ${b.player.apellidos || ''}`.trim().toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+  
+  // Render table rows
+  elements.rosterTableBody.innerHTML = '';
+  
+  if (rosterPlayersList.length === 0) {
+    elements.rosterTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="no-suggestions" style="text-align: center; padding: 2rem;">
+          No se encontraron jugadores históricos para este club en la base de datos local.
+        </td>
+      </tr>
+    `;
+    elements.rosterPlaceholder.classList.add('hidden');
+    elements.rosterResultsContainer.classList.remove('hidden');
+    return;
+  }
+  
+  rosterPlayersList.forEach(item => {
+    const p = item.player;
+    const rec = item.latestRecord;
+    const isTemp = p.ci.startsWith('TEMP-');
+    const photoUrl = isTemp ? DEFAULT_PHOTO : `${SUPABASE_URL}/storage/v1/object/public/fotos_jugadores/${p.ci}.jpg`;
+    
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="text-align: center;">
+        <input type="checkbox" class="roster-cb" data-ci="${p.ci}">
+      </td>
+      <td style="text-align: center;">
+        <img src="${photoUrl}" class="roster-player-photo" width="32" height="32" onerror="this.onerror=null; this.src='${DEFAULT_PHOTO}'">
+      </td>
+      <td>
+        <span class="roster-player-name">${formatFullName(p)}</span>
+      </td>
+      <td>
+        <span>${isTemp ? 'Temporal' : p.ci}</span>
+      </td>
+      <td style="text-align: center; font-weight: 700; color: var(--color-primary);">
+        ${rec['año']}
+      </td>
+      <td>
+        <select class="roster-cat-select" data-ci="${p.ci}">
+          <option value="natural" ${rec.categoria_jugador === 'natural' ? 'selected' : ''}>Natural</option>
+          <option value="refuerzo" ${rec.categoria_jugador === 'refuerzo' ? 'selected' : ''}>Refuerzo</option>
+          <option value="juvenil" ${rec.categoria_jugador === 'juvenil' ? 'selected' : ''}>Juvenil</option>
+        </select>
+      </td>
+    `;
+    elements.rosterTableBody.appendChild(tr);
+  });
+  
+  // Reset Select All checkbox to unchecked by default
+  elements.rosterSelectAll.checked = false;
+  
+  // Switch Views
+  elements.rosterPlaceholder.classList.add('hidden');
+  elements.rosterResultsContainer.classList.remove('hidden');
+}
+
+// Handle Roster Save
+function handleRosterSave(targetYear) {
+  const teamIdVal = elements.rosterSelectedTeamName.dataset.teamId;
+  
+  if (!teamIdVal) {
+    showToast('Por favor selecciona un club primero', 'error');
+    return;
+  }
+  
+  const checkedBoxes = elements.rosterTableBody.querySelectorAll('input.roster-cb:checked');
+  
+  if (checkedBoxes.length === 0) {
+    showToast('Por favor selecciona al menos un jugador para renovar su nómina.', 'warning');
+    return;
+  }
+  
+  const playersToSave = [];
+  checkedBoxes.forEach(cb => {
+    const ci = cb.dataset.ci;
+    const player = state.players.find(p => p.ci === ci);
+    const catSelect = elements.rosterTableBody.querySelector(`select.roster-cat-select[data-ci="${ci}"]`);
+    const category = catSelect ? catSelect.value : 'natural';
+    
+    if (player) {
+      playersToSave.push({
+        ci: ci,
+        fullName: formatFullName(player),
+        category: category
+      });
+    }
+  });
+  
+  state.pendingAction = {
+    type: 'roster_renewal',
+    teamId: parseInt(teamIdVal),
+    teamName: elements.rosterSelectedTeamName.textContent,
+    year: targetYear,
+    players: playersToSave
+  };
+  
+  elements.confirmSummaryText.innerHTML = `Se habilitará en bloque a <strong>${playersToSave.length} jugadores</strong> en el club <strong>${elements.rosterSelectedTeamName.textContent}</strong> para la gestión deportiva <strong>${targetYear}</strong>.`;
+  
+  showConfirmModal();
 }
 
 // Start Application
