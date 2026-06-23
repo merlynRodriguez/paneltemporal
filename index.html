@@ -19,7 +19,8 @@
     <!-- Header -->
     <header class="app-header">
       <div class="logo-area">
-        <div class="badge-icon">⚽</div>
+        <img src="/logo.png" alt="Logo Liga de Fútbol Vinto" class="logo-main-img" onerror="this.style.display='none'; document.getElementById('logo-fallback').classList.remove('hidden')">
+        <div id="logo-fallback" class="badge-icon hidden">⚽</div>
         <div>
           <h1>Liga de Fútbol Vinto</h1>
           <p class="subtitle">Panel de Habilitación Histórica y Traspasos</p>
@@ -53,6 +54,7 @@
     <nav class="main-nav glass-card">
       <button class="nav-btn active" data-nav="section-players">👤 Gestión de Jugadores</button>
       <button class="nav-btn" data-nav="section-rosters">📋 Renovación de Nóminas</button>
+      <button class="nav-btn" data-nav="section-carnets">💳 Carnets de Jugadores</button>
     </nav>
 
     <!-- Players Management Section -->
@@ -285,6 +287,95 @@
       </div>
     </div>
   </div> <!-- End of #section-rosters -->
+
+  <!-- Carnets Section -->
+  <div id="section-carnets" class="nav-section hidden">
+    <div class="dashboard-grid">
+      <!-- Left Column: Search & Selected Player details -->
+      <section class="grid-col main-panel">
+        <!-- Search Card -->
+        <div class="glass-card card-search">
+          <h2 class="section-title">🔍 Buscador de Jugadores para Carnet</h2>
+          <p class="section-desc">Busca al jugador en la base de datos local para previsualizar e imprimir su carnet.</p>
+          
+          <div class="search-input-wrapper">
+            <div class="search-input-inner">
+              <input type="text" id="search-carnet-player" placeholder="Escribe el nombre o apellido del jugador..." autocomplete="off">
+              <span class="search-icon">🔍</span>
+              <button id="btn-clear-carnet-search" class="clear-input-btn hidden" type="button" title="Limpiar búsqueda">×</button>
+            </div>
+            <button id="btn-carnet-search-trigger" class="btn btn-primary btn-search-go" type="button">Buscar</button>
+          </div>
+          
+          <!-- Suggestion Box for Carnet -->
+          <div id="search-carnet-suggestions" class="suggestions-container hidden"></div>
+        </div>
+
+        <!-- Carnet Preview Card -->
+        <div id="carnet-preview-container" class="glass-card carnet-preview-card hidden">
+          <h2 class="section-title">✨ Previsualización del Carnet</h2>
+          <p class="section-desc">Diseño estándar de tarjeta PVC CR80 (8.5cm x 5.4cm).</p>
+          
+          <div class="carnet-double-view">
+            <!-- Anverso -->
+            <div class="carnet-wrapper">
+              <div class="carnet-title-badge">ANVERSO (FRENTE)</div>
+              <div id="carnet-anverso" class="carnet-side carnet-front">
+                <!-- Generado dinámicamente -->
+              </div>
+            </div>
+            
+            <!-- Reverso -->
+            <div class="carnet-wrapper">
+              <div class="carnet-title-badge">REVERSO (ATRÁS)</div>
+              <div id="carnet-reverso" class="carnet-side carnet-back">
+                <!-- Generado dinámicamente -->
+              </div>
+            </div>
+          </div>
+
+          <div class="carnet-actions" style="margin-top: 1.5rem;">
+            <button id="btn-print-carnet" class="btn btn-accent btn-full">
+              <span>🖨️ Imprimir Carnet PVC</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- No Player Selected State -->
+        <div id="carnet-placeholder" class="glass-card placeholder-card">
+          <div class="placeholder-icon">💳</div>
+          <h3>Ningún jugador seleccionado</h3>
+          <p>Busca un jugador en el cuadro de búsqueda para ver y configurar su carnet deportivo.</p>
+        </div>
+      </section>
+
+      <!-- Right Column: Info & Instructions -->
+      <section class="grid-col sidebar-panel">
+        <div class="glass-card card-register">
+          <h2 class="section-title">ℹ️ Instrucciones de Impresión</h2>
+          <p class="section-desc">Sigue estos pasos para obtener una impresión óptima en tu impresora de tarjetas plásticas PVC.</p>
+          <ul class="instructions-list" style="margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem;">
+            <li><strong>Medida Estándar:</strong> El contenedor está diseñado a escala física exacta de una tarjeta de PVC CR80 (8.5 cm x 5.4 cm).</li>
+            <li><strong>Diálogo de Impresión:</strong> Al hacer clic en <em>Imprimir Carnet PVC</em>, se abrirá la ventana de impresión del sistema.</li>
+            <li><strong>Ajustes recomendados:</strong>
+              <ul style="margin-left: 1rem; margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <li>Establece el tamaño de papel a <strong>CR80</strong> (si tu impresora lo soporta) o tamaño tarjeta.</li>
+                <li>Establece los <strong>márgenes</strong> en "Ninguno" o "Cero".</li>
+                <li>Activa la casilla <strong>Gráficos de fondo</strong> (Background graphics) en la configuración de la impresora.</li>
+              </ul>
+            </li>
+            <li><strong>Colores del Carnet según Categoría:</strong>
+              <ul style="margin-left: 1rem; margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <li>🟢 <strong style="color: #10b981;">Natural:</strong> Verde (`#008f39`)</li>
+                <li>🔴 <strong style="color: #ef4444;">Refuerzo:</strong> Rojo Claro</li>
+                <li>🔵 <strong style="color: #38bdf8;">Juvenil:</strong> Celeste (Menores de 19 años)</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </div>
 </div> <!-- End of .app-container -->
 
   <!-- Confirmation Modal -->
@@ -316,6 +407,9 @@
 
   <!-- Toast Notification System -->
   <div id="toast-container" class="toast-container"></div>
+
+  <!-- Print section wrapper -->
+  <div id="print-section" class="print-only-container"></div>
 
   <!-- Core JavaScript -->
   <script type="module" src="/app.js"></script>

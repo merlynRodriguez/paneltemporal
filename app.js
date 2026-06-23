@@ -57,7 +57,20 @@ const elements = {
   rosterTableBody: document.getElementById('roster-table-body'),
   btnRoster2024: document.getElementById('btn-roster-2024'),
   btnRoster2025: document.getElementById('btn-roster-2025'),
-  rosterPlaceholder: document.getElementById('roster-placeholder')
+  rosterPlaceholder: document.getElementById('roster-placeholder'),
+  
+  // Carnet Elements
+  sectionCarnets: document.getElementById('section-carnets'),
+  searchCarnetPlayer: document.getElementById('search-carnet-player'),
+  btnClearCarnetSearch: document.getElementById('btn-clear-carnet-search'),
+  btnCarnetSearchTrigger: document.getElementById('btn-carnet-search-trigger'),
+  searchCarnetSuggestions: document.getElementById('search-carnet-suggestions'),
+  carnetPreviewContainer: document.getElementById('carnet-preview-container'),
+  carnetPlaceholder: document.getElementById('carnet-placeholder'),
+  carnetAnverso: document.getElementById('carnet-anverso'),
+  carnetReverso: document.getElementById('carnet-reverso'),
+  btnPrintCarnet: document.getElementById('btn-print-carnet'),
+  printSection: document.getElementById('print-section')
 };
 
 // Helper: Normalize strings (removes accents, lowercase)
@@ -391,6 +404,47 @@ function setupEventListeners() {
   // Modal buttons
   elements.modalCancel.addEventListener('click', hideConfirmModal);
   elements.modalConfirm.addEventListener('click', executePendingAction);
+
+  // Carnet Search Input
+  elements.searchCarnetPlayer.addEventListener('input', () => {
+    handleCarnetSearchInput();
+    if (elements.searchCarnetPlayer.value.trim().length > 0) {
+      elements.btnClearCarnetSearch.classList.remove('hidden');
+    } else {
+      elements.btnClearCarnetSearch.classList.add('hidden');
+    }
+  });
+  elements.searchCarnetPlayer.addEventListener('focus', () => {
+    if (elements.searchCarnetPlayer.value.trim().length > 0) {
+      elements.searchCarnetSuggestions.classList.remove('hidden');
+    }
+  });
+
+  // Clear Carnet Search
+  elements.btnClearCarnetSearch.addEventListener('click', clearCarnetSearch);
+
+  // Search Carnet Trigger
+  elements.btnCarnetSearchTrigger.addEventListener('click', performFullCarnetSearch);
+  elements.searchCarnetPlayer.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      performFullCarnetSearch();
+    }
+  });
+
+  // Close suggestions when clicking outside
+  document.addEventListener('click', (e) => {
+    if (
+      !elements.searchCarnetPlayer.contains(e.target) && 
+      !elements.searchCarnetSuggestions.contains(e.target) && 
+      !elements.btnCarnetSearchTrigger.contains(e.target) &&
+      !elements.btnClearCarnetSearch.contains(e.target)
+    ) {
+      elements.searchCarnetSuggestions.classList.add('hidden');
+    }
+  });
+
+  // Print Carnet Action
+  elements.btnPrintCarnet.addEventListener('click', handlePrintCarnet);
 }
 
 // Handle Search Input and render fast suggestions
@@ -894,27 +948,27 @@ function handleRosterSearch() {
   elements.rosterSelectedTeamName.textContent = team.nombre;
   elements.rosterSelectedTeamName.dataset.teamId = team.id;
   
-  // Filter all participation history for this team
-  const rosterRecords = state.history.filter(h => h.equipo_id === team.id);
-  
-  // Group by player CI to find their latest participation record in this team
-  const playerLatestRecords = {};
-  rosterRecords.forEach(rec => {
-    const existing = playerLatestRecords[rec.jugador_ci];
+  // Group all history by player CI to find their absolute latest participation record in the entire database
+  const playerAbsoluteLatestRecord = {};
+  state.history.forEach(rec => {
+    const existing = playerAbsoluteLatestRecord[rec.jugador_ci];
     if (!existing || rec['año'] > existing['año']) {
-      playerLatestRecords[rec.jugador_ci] = rec;
+      playerAbsoluteLatestRecord[rec.jugador_ci] = rec;
     }
   });
   
-  // Construct list of players
+  // Construct list of players whose absolute latest record corresponds to this team
   const rosterPlayersList = [];
-  for (const ci in playerLatestRecords) {
-    const player = state.players.find(p => p.ci === ci);
-    if (player) {
-      rosterPlayersList.push({
-        player: player,
-        latestRecord: playerLatestRecords[ci]
-      });
+  for (const ci in playerAbsoluteLatestRecord) {
+    const latestRec = playerAbsoluteLatestRecord[ci];
+    if (latestRec.equipo_id === team.id) {
+      const player = state.players.find(p => p.ci === ci);
+      if (player) {
+        rosterPlayersList.push({
+          player: player,
+          latestRecord: latestRec
+        });
+      }
     }
   }
   
@@ -1026,6 +1080,305 @@ function handleRosterSave(targetYear) {
   elements.confirmSummaryText.innerHTML = `Se habilitará en bloque a <strong>${playersToSave.length} jugadores</strong> en el club <strong>${elements.rosterSelectedTeamName.textContent}</strong> para la gestión deportiva <strong>${targetYear}</strong>.`;
   
   showConfirmModal();
+}
+
+let selectedCarnetPlayerObj = null;
+
+// Handle Carnet Search Input and render suggestions
+function handleCarnetSearchInput() {
+  const rawQuery = elements.searchCarnetPlayer.value.trim();
+  const query = normalizeString(rawQuery);
+  
+  if (query.length < 2) {
+    elements.searchCarnetSuggestions.innerHTML = '';
+    elements.searchCarnetSuggestions.classList.add('hidden');
+    
+    // Restore appropriate state card
+    elements.carnetPreviewContainer.classList.add('hidden');
+    elements.carnetPlaceholder.classList.remove('hidden');
+    return;
+  }
+  
+  elements.carnetPreviewContainer.classList.add('hidden');
+  elements.carnetPlaceholder.classList.add('hidden');
+  
+  // Search locally
+  const matches = state.players.filter(player => {
+    const nameMatch = normalizeString(player.nombres).includes(query);
+    const surnameMatch = normalizeString(player.apellidos).includes(query);
+    const ciMatch = player.ci.toLowerCase().includes(query);
+    return nameMatch || surnameMatch || ciMatch;
+  });
+  
+  elements.searchCarnetSuggestions.innerHTML = '';
+  
+  if (matches.length === 0) {
+    elements.searchCarnetSuggestions.innerHTML = `<div class="no-suggestions">No se encontraron jugadores</div>`;
+    elements.searchCarnetSuggestions.classList.remove('hidden');
+    return;
+  }
+  
+  const topMatches = matches.slice(0, 25);
+  
+  topMatches.forEach((player) => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+    item.dataset.ci = player.ci;
+    
+    const isTemp = player.ci.startsWith('TEMP-');
+    const badgeHtml = isTemp ? `<span class="badge badge-temp">Temp</span>` : `<span class="badge">CI: ${player.ci}</span>`;
+    const photoUrl = isTemp ? DEFAULT_PHOTO : `${SUPABASE_URL}/storage/v1/object/public/fotos_jugadores/${player.ci}.jpg`;
+    
+    const rawFullName = formatFullName(player);
+    const highlightedName = highlightText(rawFullName, rawQuery);
+    
+    item.innerHTML = `
+      <img src="${photoUrl}" class="suggestion-photo" width="28" height="28" onerror="this.onerror=null; this.src='${DEFAULT_PHOTO}'">
+      <div class="suggestion-info">
+        <span class="suggestion-name">${highlightedName}</span>
+        <span>${badgeHtml}</span>
+      </div>
+    `;
+    
+    item.addEventListener('click', () => selectCarnetPlayer(player));
+    elements.searchCarnetSuggestions.appendChild(item);
+  });
+  
+  elements.searchCarnetSuggestions.classList.add('hidden');
+}
+
+// Clear Carnet Search
+function clearCarnetSearch() {
+  elements.searchCarnetPlayer.value = '';
+  elements.searchCarnetSuggestions.innerHTML = '';
+  elements.searchCarnetSuggestions.classList.add('hidden');
+  elements.btnClearCarnetSearch.classList.add('hidden');
+  
+  elements.carnetPreviewContainer.classList.add('hidden');
+  elements.carnetPlaceholder.classList.remove('hidden');
+  
+  selectedCarnetPlayerObj = null;
+  elements.searchCarnetPlayer.focus();
+}
+
+// Perform Full Carnet Search
+function performFullCarnetSearch() {
+  const rawQuery = elements.searchCarnetPlayer.value.trim();
+  const query = normalizeString(rawQuery);
+  
+  if (query.length < 2) {
+    showToast('Ingresa al menos 2 caracteres para buscar', 'warning');
+    return;
+  }
+  
+  elements.carnetPreviewContainer.classList.add('hidden');
+  elements.carnetPlaceholder.classList.add('hidden');
+  
+  const matches = state.players.filter(player => {
+    const nameMatch = normalizeString(player.nombres).includes(query);
+    const surnameMatch = normalizeString(player.apellidos).includes(query);
+    const ciMatch = player.ci.toLowerCase().includes(query);
+    return nameMatch || surnameMatch || ciMatch;
+  });
+  
+  elements.searchCarnetSuggestions.innerHTML = '';
+  
+  if (matches.length === 0) {
+    elements.searchCarnetSuggestions.innerHTML = `<div class="no-suggestions">No se encontraron jugadores para "${rawQuery}"</div>`;
+    elements.searchCarnetSuggestions.classList.remove('hidden');
+    return;
+  }
+  
+  const header = document.createElement('div');
+  header.className = 'suggestions-header';
+  header.textContent = `Resultados de búsqueda: ${matches.length} encontrados`;
+  elements.searchCarnetSuggestions.appendChild(header);
+  
+  const displayMatches = matches.slice(0, 100);
+  
+  displayMatches.forEach((player) => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+    item.dataset.ci = player.ci;
+    
+    const isTemp = player.ci.startsWith('TEMP-');
+    const badgeHtml = isTemp ? `<span class="badge badge-temp">Temp</span>` : `<span class="badge">CI: ${player.ci}</span>`;
+    const photoUrl = isTemp ? DEFAULT_PHOTO : `${SUPABASE_URL}/storage/v1/object/public/fotos_jugadores/${player.ci}.jpg`;
+    
+    const rawFullName = formatFullName(player);
+    const highlightedName = highlightText(rawFullName, rawQuery);
+    
+    item.innerHTML = `
+      <img src="${photoUrl}" class="suggestion-photo" width="28" height="28" onerror="this.onerror=null; this.src='${DEFAULT_PHOTO}'">
+      <div class="suggestion-info">
+        <span class="suggestion-name">${highlightedName}</span>
+        <span>${badgeHtml}</span>
+      </div>
+    `;
+    
+    item.addEventListener('click', () => selectCarnetPlayer(player));
+    elements.searchCarnetSuggestions.appendChild(item);
+  });
+  
+  elements.searchCarnetSuggestions.classList.add('hidden');
+}
+
+// Select Player and Render Carnet Preview
+function selectCarnetPlayer(player) {
+  selectedCarnetPlayerObj = player;
+  elements.searchCarnetSuggestions.classList.add('hidden');
+  elements.searchCarnetPlayer.value = formatFullName(player);
+  elements.btnClearCarnetSearch.classList.remove('hidden');
+  
+  // 1. Get absolute latest record for this player
+  const playerHistory = state.history.filter(h => h.jugador_ci === player.ci);
+  playerHistory.sort((a, b) => b['año'] - a['año']);
+  const latestRecord = playerHistory[0] || null;
+  
+  // 2. Get Team name
+  let teamName = 'SIN CLUB REGISTRADO';
+  if (latestRecord) {
+    const team = state.teams.find(t => t.id === latestRecord.equipo_id);
+    if (team) {
+      teamName = team.nombre;
+    }
+  }
+  
+  // 3. Calculate Age & Category
+  let isJuvenil = false;
+  let age = null;
+  const currentYear = new Date().getFullYear();
+  
+  if (player.fecha_nacimiento) {
+    const birthDate = new Date(player.fecha_nacimiento);
+    const today = new Date();
+    age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 19) {
+      isJuvenil = true;
+    }
+  }
+  
+  let category = 'natural';
+  if (isJuvenil) {
+    category = 'juvenil';
+  } else if (latestRecord) {
+    category = latestRecord.categoria_jugador; // 'natural', 'refuerzo', 'juvenil'
+  }
+  
+  // 4. Set Card Colors & Label
+  let categoryLabel = 'Natural';
+  let catClass = 'cat-natural';
+  if (category === 'refuerzo') {
+    categoryLabel = 'Refuerzo';
+    catClass = 'cat-refuerzo';
+  } else if (category === 'juvenil') {
+    categoryLabel = 'Juvenil';
+    catClass = 'cat-juvenil';
+  }
+  
+  // 5. Dates
+  const today = new Date();
+  const dd = String(today.getDate()).padStart(2, '0');
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const yyyy = today.getFullYear();
+  const emissionDate = `${dd}/${mm}/${yyyy}`;
+  
+  // 6. QR Code value
+  const qrValue = `https://kardex.ligadefutbolvinto.com/${player.ci}`;
+  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrValue)}&color=0f172a&bgcolor=ffffff&qzone=1`;
+  
+  // 7. Photo Url
+  const isTemp = player.ci.startsWith('TEMP-');
+  const photoUrl = isTemp ? DEFAULT_PHOTO : `${SUPABASE_URL}/storage/v1/object/public/fotos_jugadores/${player.ci}.jpg`;
+  
+  // 8. Generate HTML for Anverso
+  const anversoHtml = `
+    <div class="carnet-front-header">
+      <div class="carnet-header-title">LIGA DE FUTBOL VINTO</div>
+      <img src="/logo.png" class="carnet-header-logo" alt="" onerror="this.style.display='none'">
+    </div>
+    <div class="carnet-front-body">
+      <!-- Foto del jugador a la izquierda -->
+      <div class="carnet-player-photo-container">
+        <img src="${photoUrl}" class="carnet-player-photo-img" onerror="this.onerror=null; this.src='${DEFAULT_PHOTO}'">
+      </div>
+      <!-- Datos a la derecha -->
+      <div class="carnet-player-details">
+        <div class="carnet-detail-item">
+          <span class="carnet-detail-label">Jugador</span>
+          <span class="carnet-detail-value player-name-value">${formatFullName(player)}</span>
+        </div>
+        <div class="carnet-detail-item">
+          <span class="carnet-detail-label">Cédula de Identidad</span>
+          <span class="carnet-detail-value">${isTemp ? 'Temporal' : player.ci}</span>
+        </div>
+        <div class="carnet-detail-item">
+          <span class="carnet-detail-label">Club Actual (${currentYear})</span>
+          <span class="carnet-detail-value">${teamName}</span>
+        </div>
+        <div class="carnet-detail-item" style="flex-direction: row; justify-content: space-between; align-items: flex-end; width: 100%;">
+          <div class="carnet-detail-item">
+            <span class="carnet-detail-label">F. Emisión</span>
+            <span class="carnet-detail-value" style="font-size: 7.5pt; font-weight: normal;">${emissionDate}</span>
+          </div>
+          <span class="carnet-category-badge">${categoryLabel}</span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // 9. Generate HTML for Reverso
+  const reversoHtml = `
+    <!-- Código QR a la izquierda -->
+    <div class="carnet-back-qr-wrapper">
+      <img src="${qrImgUrl}" class="carnet-back-qr-img" alt="QR Verification">
+    </div>
+    <!-- Firmas a la derecha -->
+    <div class="carnet-back-signatures">
+      <div class="carnet-sig-area">
+        <div class="carnet-sig-line"></div>
+        <span class="carnet-sig-label">Firma Presidente</span>
+      </div>
+      <div class="carnet-sig-area">
+        <div class="carnet-sig-line"></div>
+        <span class="carnet-sig-label">Firma Secretario</span>
+      </div>
+    </div>
+  `;
+  
+  // Render in preview
+  elements.carnetAnverso.className = `carnet-side carnet-front ${catClass}`;
+  elements.carnetAnverso.innerHTML = anversoHtml;
+  
+  elements.carnetReverso.className = `carnet-side carnet-back ${catClass}`;
+  elements.carnetReverso.innerHTML = reversoHtml;
+  
+  // Show Card & Hide Placeholder
+  elements.carnetPlaceholder.classList.add('hidden');
+  elements.carnetPreviewContainer.classList.remove('hidden');
+}
+
+// Handle Print Carnet
+function handlePrintCarnet() {
+  if (!selectedCarnetPlayerObj) {
+    showToast('Por favor selecciona un jugador primero', 'error');
+    return;
+  }
+  
+  // Copy content from preview to print container
+  const printAnverso = elements.carnetAnverso.cloneNode(true);
+  const printReverso = elements.carnetReverso.cloneNode(true);
+  
+  elements.printSection.innerHTML = '';
+  elements.printSection.appendChild(printAnverso);
+  elements.printSection.appendChild(printReverso);
+  
+  // Trigger system print dialogue
+  window.print();
 }
 
 // Start Application
